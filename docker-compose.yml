@@ -1,0 +1,59 @@
+# Start everything with:  docker compose up --build
+# Configuration comes from the .env file (copy .env.example to .env first).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: devflow-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [devflow-net]
+    healthcheck:
+      # -h 127.0.0.1 forces a TCP check, which only passes after init scripts finish.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: .
+    image: devflow-backend:latest
+    container_name: devflow-backend
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_HOST: db
+      POSTGRES_PORT: "5432"
+      FRONTEND_PORT: ${FRONTEND_PORT:-8095}
+      BACKEND_PORT: ${BACKEND_PORT:-5000}
+    ports:
+      - "${BACKEND_PORT:-5000}:5000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [devflow-net]
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: devflow-frontend:latest
+    container_name: devflow-frontend
+    ports:
+      - "${FRONTEND_PORT:-8095}:80"
+    depends_on: [backend]
+    networks: [devflow-net]
+    restart: unless-stopped
+
+networks:
+  devflow-net:
+    driver: bridge
+
+volumes:
+  pgdata:

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DevFlow - Build. Containerize. Deploy.</title>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="brand">
+    <i class="bi bi-box-seam-fill"></i>
+    <div><strong>DevFlow</strong><small>Build. Containerize. Deploy.</small></div>
+  </div>
+  <nav class="nav flex-column">
+    <a class="nav-link" href="#dashboard"><i class="bi bi-grid-1x2"></i> Dashboard</a>
+    <a class="nav-link" href="#services"><i class="bi bi-hdd-stack"></i> Services</a>
+    <a class="nav-link" href="#deployments"><i class="bi bi-rocket-takeoff"></i> Deployments</a>
+    <a class="nav-link" href="#cicd"><i class="bi bi-arrow-repeat"></i> CI/CD</a>
+    <a class="nav-link" href="#docker"><i class="bi bi-boxes"></i> Docker</a>
+  </nav>
+  <div class="sidebar-foot">GitHub &rarr; Jenkins &rarr; Docker &rarr; App</div>
+</aside>
+
+<div class="main">
+  <header class="topbar">
+    <button class="btn btn-sm d-lg-none" id="menuBtn" aria-label="Toggle menu"><i class="bi bi-list fs-4"></i></button>
+    <h1 class="page-title" id="pageTitle">Dashboard</h1>
+    <div class="flow" aria-label="Delivery flow">
+      <span class="flow-step"><i class="bi bi-github"></i> GitHub</span><i class="bi bi-chevron-right"></i>
+      <span class="flow-step"><i class="bi bi-gear-wide-connected"></i> Jenkins</span><i class="bi bi-chevron-right"></i>
+      <span class="flow-step"><i class="bi bi-box"></i> Docker</span><i class="bi bi-chevron-right"></i>
+      <span class="flow-step" id="flowApp"><i class="bi bi-globe2"></i> App <span class="dot" id="healthDot"></span></span>
+    </div>
+  </header>
+
+  <main class="content">
+    <!-- Dashboard -->
+    <section id="page-dashboard" class="page">
+      <div class="row g-3 mb-3" id="statCards"></div>
+      <div class="row g-3 mb-3">
+        <div class="col-xl-8">
+          <div class="panel"><h2>Builds in the last 7 days</h2><div class="chart-box"><canvas id="buildChart"></canvas><div class="empty" id="chartEmpty">No builds recorded yet. Run the Jenkins pipeline to see build history.</div></div></div>
+        </div>
+        <div class="col-xl-4">
+          <div class="panel"><h2>Latest pipeline run</h2><div id="latestRun"></div></div>
+        </div>
+      </div>
+      <div class="row g-3">
+        <div class="col-xl-7"><div class="panel"><h2>Service status</h2><div class="table-responsive" id="dashServices"></div></div></div>
+        <div class="col-xl-5"><div class="panel"><h2>Recent deployments</h2><div id="dashDeployments"></div></div></div>
+      </div>
+    </section>
+
+    <!-- Services -->
+    <section id="page-services" class="page d-none">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <p class="text-muted mb-0">Create, edit, deploy and remove the services DevFlow manages.</p>
+        <button class="btn btn-accent" id="addServiceBtn"><i class="bi bi-plus-lg"></i> Add service</button>
+      </div>
+      <div class="panel"><div class="table-responsive" id="servicesTable"></div></div>
+    </section>
+
+    <!-- Deployments -->
+    <section id="page-deployments" class="page d-none">
+      <div class="panel"><div class="table-responsive" id="deploymentsTable"></div></div>
+    </section>
+
+    <!-- CI/CD -->
+    <section id="page-cicd" class="page d-none">
+      <div class="panel mb-3">
+        <h2>Pipeline stages</h2>
+        <div class="stages">
+          <span>Checkout</span><i class="bi bi-chevron-right"></i><span>Install Dependencies</span><i class="bi bi-chevron-right"></i>
+          <span>Run Tests</span><i class="bi bi-chevron-right"></i><span>Build Docker Images</span><i class="bi bi-chevron-right"></i>
+          <span>Deploy</span><i class="bi bi-chevron-right"></i><span>Health Check</span>
+        </div>
+      </div>
+      <div class="panel"><h2>Build history</h2><div class="table-responsive" id="pipelinesTable"></div></div>
+    </section>
+
+    <!-- Docker -->
+    <section id="page-docker" class="page d-none">
+      <div class="panel"><h2>Containers in docker-compose.yml</h2>
+      <p class="text-muted small">Names, images and ports come from the Docker Compose configuration. Only the backend and database status are checked live; run <code>docker compose ps</code> for the real container state.</p><div class="table-responsive" id="dockerTable"></div></div>
+      <div class="panel mt-3"><h2>Useful commands</h2>
+        <pre class="cmds">docker compose up --build     # build images and start all containers
+docker compose ps             # list running containers
+docker images                 # list images
+docker compose logs backend   # view backend logs
+docker compose down           # stop and remove containers</pre>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- Add / edit service dialog -->
+<div class="modal fade" id="serviceModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="modalTitle">Add service</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <input type="hidden" id="svcId">
+        <div class="mb-3"><label class="form-label" for="svcName">Service name</label><input class="form-control" id="svcName" maxlength="80"></div>
+        <div class="row">
+          <div class="col-6 mb-3"><label class="form-label" for="svcVersion">Version</label><input class="form-control" id="svcVersion" maxlength="30" placeholder="1.0.0"></div>
+          <div class="col-6 mb-3"><label class="form-label" for="svcEnv">Environment</label>
+            <select class="form-select" id="svcEnv"><option>development</option><option>staging</option><option>production</option></select></div>
+        </div>
+        <div class="mb-3"><label class="form-label" for="svcStatus">Status</label>
+          <select class="form-select" id="svcStatus"><option>running</option><option>stopped</option><option>failed</option></select></div>
+        <div class="mb-1"><label class="form-label" for="svcDesc">Description</label><input class="form-control" id="svcDesc" maxlength="255"></div>
+        <div class="text-danger small mt-2" id="formError"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-accent" id="saveServiceBtn">Save service</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div id="toast" class="toast align-items-center text-bg-dark border-0" role="status">
+    <div class="d-flex"><div class="toast-body" id="toastBody"></div></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
