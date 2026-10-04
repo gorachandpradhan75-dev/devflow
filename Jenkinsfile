@@ -62,7 +62,7 @@ pipeline {
             steps {
                 sh '''
                     for i in $(seq 1 15); do
-                        if curl -fs ${BACKEND_URL}/api/health; then
+                        if curl -fsS "http://host.docker.internal:5000/api/health"; then
                             echo ""
                             echo "Application is healthy"
                             exit 0
@@ -92,4 +92,5 @@ pipeline {
         }
     }
 }
+
 
