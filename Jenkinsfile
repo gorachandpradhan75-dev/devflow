@@ -1,4 +1,4 @@
-﻿// DevFlow CI/CD pipeline: GitHub -> Jenkins -> Tests -> Docker build -> Deploy -> Health check
+// DevFlow CI/CD pipeline: GitHub -> Jenkins -> Tests -> Docker build -> Deploy -> Health check
 // Requires on the Jenkins agent: git, python3 (+venv), docker with the compose plugin, curl.
 pipeline {
     agent any
